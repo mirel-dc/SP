@@ -1,23 +1,33 @@
 const express = require("express");
+const session = require("express-session");
+const path = require("path");
 const routes = require("./routes");
-const db_connection = require("./dbConnection");
 const app = express();
-app.use(express.json());
+
+app.set("views", path.join(__dirname, "/views"));
+app.set("view engine", "ejs");
+app.use(express.urlencoded({ extended: false }));
+app.use(
+  session({
+    name: "session",
+    secret: "my_secret",
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      maxAge: 3600 * 1000, // 1hr
+    },
+  })
+);
+
+const passport = require("passport");
+require("./passport");
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use(express.static(path.join(__dirname, "public")));
 app.use(routes);
-
-app.get("/", function (req, res) {
-  routes.get();
-  db_connection.query();
-});
-
-// Handling Errors
 app.use((err, req, res, next) => {
   // console.log(err);
-  err.statusCode = err.statusCode || 500;
-  err.message = err.message || "Internal Server Error";
-  res.status(err.statusCode).json({
-    message: err.message,
-  });
+  return res.send("Internal Server Error");
 });
-
 app.listen(3000, () => console.log("Server is running on port 3000"));
